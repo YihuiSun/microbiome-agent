@@ -1,0 +1,8 @@
+# Phase 1 dependencies — all easy-install wheels (no fiddly binaries yet).
+# scikit-bio (for diversity metrics) and matplotlib/seaborn (for plots) come
+# later, when we build the tools that need them.
+pandas>=2.0
+numpy>=1.24
+scipy>=1.10
+statsmodels>=0.14
+pytest>=7.4
