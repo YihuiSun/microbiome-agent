@@ -25,9 +25,10 @@ LLM to call and easy to evaluate.
 
 - [x] **Phase 0** — environment (venv on Python 3.12 from conda `py312`), repo,
       first commit pushed to github.com/YihuiSun/microbiome-agent.
-- [~] **Phase 1** — analysis tools. DONE: `differential_abundance`, data
-      `loader` + synthetic example dataset, 10 passing tests, `bootstrap.sh`.
-      REMAINING: diversity tool, enrichment tool, report assembler.
+- [x] **Phase 1** — analysis tools. DONE: `differential_abundance`, data
+      `loader` + synthetic example dataset, diversity (alpha Shannon + beta
+      Bray-Curtis/PERMANOVA), enrichment (ORA), report assembler. 51 passing
+      tests, `bootstrap.sh`.
 - [ ] **Phase 2** — MCP server
 - [ ] **Phase 3** — agent loop
 - [ ] **Phase 4** — evaluation harness
@@ -52,7 +53,7 @@ running example MCP server.
 
 ---
 
-## Phase 1 — Analysis tools as plain Python  (~2 weeks — in progress)
+## Phase 1 — Analysis tools as plain Python  (~2 weeks — complete)
 
 Goal: correct, tested microbiome analysis on pre-computed abundance tables. No
 AI yet — this is the comfort-zone phase that builds momentum and, crucially, the
@@ -67,12 +68,16 @@ case-control cohorts matter because they give known-answer ground truth for eval
 Tools (each: defensive function + known-answer tests + tidy return value):
 - `differential_abundance` — per-feature test + FDR correction + log2 fold change. DONE.
 - data `loader` — aligns an abundance table with sample metadata; feeds the tools. DONE.
-- diversity — alpha (Shannon) and beta (Bray-Curtis + PERMANOVA). Introduces
-  `scikit-bio`. NEXT.
-- functional/pathway enrichment — ORA and/or GSEA-style over a feature ranking.
-- report assembler — turns tool outputs + figures into a markdown/HTML report.
+- diversity — alpha (Shannon) and beta (Bray-Curtis + PERMANOVA), via
+  `scikit-bio`. DONE.
+- functional/pathway enrichment — ORA via Fisher's exact test + BH FDR. DONE
+  (code-complete and tested; real runs still need a real pathway catalogue —
+  e.g. KEGG/MetaCyc set memberships — which is a one-time data-sourcing task,
+  not code. A rank-based GSEA variant is a natural later addition.)
+- report assembler — tool outputs + figures into markdown + a self-contained
+  HTML file (volcano, alpha boxplot, PCoA, enrichment bar). DONE.
 
-Deliverable: a small, fully-tested analysis library.
+Deliverable: a small, fully-tested analysis library. COMPLETE.
 
 ---
 
@@ -167,6 +172,6 @@ part that's easiest to deprioritize and most important to keep — protect it.
 - venv on Python 3.12 (sourced from conda `py312`); `which python` is the source
   of truth, not the prompt.
 - Git rhythm: `git add . && git commit -m "..." && git push`. Never commit
-  `.venv/` or `data/`.
+  `.venv/`, `data/`, or generated reports (the assembler's output dir).
 - Realistic expectation: this project gets you into industry now and makes the
   AI-eng move reachable later; it is not a one-step conversion, and that's fine.
