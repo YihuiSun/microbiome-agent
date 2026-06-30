@@ -29,7 +29,9 @@ LLM to call and easy to evaluate.
       `loader` + synthetic example dataset, diversity (alpha Shannon + beta
       Bray-Curtis/PERMANOVA), enrichment (ORA), report assembler. 51 passing
       tests, `bootstrap.sh`.
-- [ ] **Phase 2** — MCP server
+- [x] **Phase 2** — MCP server (FastMCP). 8 tools wrap the Phase 1 library with
+      a handle/summary I/O pattern (dataset_id + analysis_id); lists and runs
+      over stdio. 8 new tests (59 total).
 - [ ] **Phase 3** — agent loop
 - [ ] **Phase 4** — evaluation harness
 - [ ] **Phase 5** — engineering polish
@@ -81,7 +83,7 @@ Deliverable: a small, fully-tested analysis library. COMPLETE.
 
 ---
 
-## Phase 2 — Wrap the tools as an MCP server  (~1 week)
+## Phase 2 — Wrap the tools as an MCP server  (~1 week — complete)
 
 Goal: expose each Phase 1 function as an MCP tool with a clear schema and a
 strong docstring. The docstrings matter more than expected — they are how the
@@ -90,7 +92,21 @@ machine-usable. Use the Python MCP SDK (FastMCP).
 
 New concepts: MCP protocol, tool schemas, structured tool I/O.
 
-Deliverable: an MCP server that lists the tools and runs them when called.
+Deliverable: an MCP server that lists the tools and runs them when called. DONE
+— 8 tools via FastMCP (`load_dataset`, `load_example_dataset`, `dataset_summary`,
+`run_differential_abundance`, `run_alpha_diversity`, `run_beta_diversity`,
+`run_enrichment`, `generate_report`), built on a handle/summary pattern: tools
+return a `dataset_id` / `analysis_id` and cache full results server-side, so big
+tables stay out of the agent's context and only findings flow back. The
+docstrings carry the domain caveats (judge by q-value; small-n PERMANOVA limit;
+alpha reports values, doesn't test them). Lives in `src/microbiome_agent/
+mcp_server/`; run with `python -m microbiome_agent.mcp_server.server`.
+
+Known limits, deferred (fine for a single agent run): the dataset/result
+registries are in-memory and session-scoped — state resets when the server
+restarts. And `run_enrichment` takes feature sets inline, which is impractical
+for a real KEGG/MetaCyc catalogue; a catalogue-file loader is the eventual fix
+(same data-sourcing task already flagged for Phase 1 enrichment).
 
 ---
 
