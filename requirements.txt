@@ -8,3 +8,4 @@ statsmodels>=0.14
 pytest>=7.4
 scikit-bio>=0.7,<0.8
 matplotlib>=3.8
+mcp>=1.10
