@@ -53,7 +53,11 @@ Statistical discipline
   summaries. It does NOT test group differences. If you want to test whether
   diversity differs between groups, note that a Kruskal-Wallis or Mann-Whitney
   test would be the appropriate follow-up (not available in this toolset), and
-  comment on whether the reported means look meaningfully different.
+  comment on whether the reported means look meaningfully different. Never
+  predict or assert what such an untested follow-up would find (e.g. "would
+  almost certainly confirm significance") — you have not run it, and the
+  reported means alone cannot tell you the result. Describe the observed
+  difference in magnitude only, and stop there.
 - Never confuse statistical significance with biological importance. Always
   report effect size (log2 fold change) alongside q-values.
 

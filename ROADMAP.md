@@ -32,8 +32,16 @@ LLM to call and easy to evaluate.
 - [x] **Phase 2** — MCP server (FastMCP). 8 tools wrap the Phase 1 library with
       a handle/summary I/O pattern (dataset_id + analysis_id); lists and runs
       over stdio. 8 new tests (59 total).
-- [ ] **Phase 3** — agent loop
-- [ ] **Phase 4** — evaluation harness
+- [x] **Phase 3** — agent loop. DONE: `agent/loop.py` connects the Anthropic
+      SDK to the MCP server; system prompt enforces FDR discipline, small-n
+      caveats, and (post-Phase-4 fix) forbids predicting untested follow-up
+      test outcomes.
+- [x] **Phase 4** — evaluation harness. DONE: `src/microbiome_agent/eval/`,
+      14 test cases (7 literature-grounded + 7 synthetic/behavioral),
+      deterministic checks + Haiku LLM-as-judge, three aggregate metrics.
+      Live `--n-runs 3` scorecard: 100% tool-selection accuracy, 0%
+      incorrect-claim rate, 100% run-to-run consistency. See
+      `phase4_eval_design.md` for the design doc.
 - [ ] **Phase 5** — engineering polish
 
 (Phase 0's "hello-world tool use" learning exercise is still worth doing before

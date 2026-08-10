@@ -8,3 +8,7 @@ __pycache__/
 data/
 outputs/
 .Rhistory
+
+# ad-hoc generated reports (assembler output dirs, incl. eval fixture reruns)
+/*_report/
+src/microbiome_agent/eval/fixtures/*/report/
