@@ -65,6 +65,11 @@ def main() -> None:
     print(answer)
     print("=" * 70)
 
+    if agent.last_trace is not None:
+        print(agent.last_trace.summary())
+        agent.last_trace.write_json("trace.json")
+        print("Trace written to trace.json")
+
 
 if __name__ == "__main__":
     main()

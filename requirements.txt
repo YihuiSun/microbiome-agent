@@ -8,5 +8,21 @@ statsmodels>=0.14
 pytest>=7.4
 scikit-bio>=0.7,<0.8
 matplotlib>=3.8
-mcp>=1.10
+# Pinned >=1.11,<2.0 (found while adding CI in Phase 5, testing a fresh
+# install rather than an already-working local env):
+#   - mcp==1.10.x's FastMCP crashes registering any tool in a module using
+#     `from __future__ import annotations` (mcp_server/server.py does) —
+#     `issubclass(param.annotation, Context)` chokes on the resulting string
+#     annotation instead of resolving it first. Fixed by 1.11.0.
+#   - mcp==2.0.0 restructures the package and drops `mcp.server.fastmcp`
+#     entirely, breaking the `from mcp.server.fastmcp import FastMCP` import.
+#     Revisit the <2.0 pin if/when the server is ported to whatever replaced
+#     FastMCP there.
+mcp>=1.11,<2.0
 anthropic>=0.30
+
+# Phase 5: API service wrapper (agent/loop.py + mcp_server/server.py are the
+# only hard deps for the CLI/eval harness; these two are only needed to run
+# `microbiome_agent.api.app` via uvicorn).
+fastapi>=0.110
+uvicorn>=0.29

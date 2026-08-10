@@ -42,7 +42,19 @@ LLM to call and easy to evaluate.
       Live `--n-runs 3` scorecard: 100% tool-selection accuracy, 0%
       incorrect-claim rate, 100% run-to-run consistency. See
       `phase4_eval_design.md` for the design doc.
-- [ ] **Phase 5** — engineering polish
+- [x] **Phase 5** — engineering polish. DONE: `agent/trace.py` (step-level
+      tracing + token/cost logging, wired into `AgentLoop.run()`),
+      `Dockerfile` (single-image, non-root), `.github/workflows/ci.yml`
+      (pytest + free eval dry-run on every push), `src/microbiome_agent/api/`
+      (FastAPI `/analyze` wrapper — request-scoped via a fresh MCP subprocess
+      per call, same pattern as `eval/tracer.py`), updated README with
+      architecture diagram and example run. Found and fixed a real
+      reproducibility bug along the way: `mcp>=1.10` was unpinned and
+      resolves to `mcp==2.0.0` on a fresh install, which drops
+      `mcp.server.fastmcp` entirely and breaks the server import; pinned to
+      `mcp>=1.11,<2.0` (1.10.x also breaks, separately, on the
+      `from __future__ import annotations` in `mcp_server/server.py`). 79
+      tests passing, 14/14 eval dry-run cases passing.
 
 (Phase 0's "hello-world tool use" learning exercise is still worth doing before
 Phase 3 — see that phase.)

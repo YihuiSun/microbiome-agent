@@ -19,11 +19,14 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from typing import Any
 
 import anthropic
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+
+from .trace import RunTrace
 
 log = logging.getLogger(__name__)
 
@@ -145,6 +148,10 @@ class AgentLoop:
         self.max_tokens = max_tokens
         self.max_turns = max_turns
         self._anthropic = anthropic.Anthropic()
+        # Populated by run()/_loop() on every call — the trace for the most
+        # recent run. See agent/trace.py. None until a run completes at
+        # least one model turn.
+        self.last_trace: RunTrace | None = None
 
     # ---------------------------------------------------------------------- #
     # Public API                                                               #
@@ -162,13 +169,15 @@ class AgentLoop:
         agent loop until the model produces a final ``end_turn`` response or
         ``max_turns`` is exceeded.
         """
+        trace = RunTrace(model=self.model, question=question)
+        self.last_trace = trace
         async with stdio_client(server_params) as (read, write):
             async with ClientSession(read, write) as session:
                 await session.initialize()
                 tools_response = await session.list_tools()
                 tools = [_mcp_tool_to_anthropic(t) for t in tools_response.tools]
                 log.info("Connected to MCP server; %d tools available.", len(tools))
-                return await self._loop(question, tools, session)
+                return await self._loop(question, tools, session, trace=trace)
 
     # ---------------------------------------------------------------------- #
     # Internal loop (separated so tests can call it directly)                 #
@@ -179,12 +188,20 @@ class AgentLoop:
         question: str,
         tools: list[dict],
         session: ClientSession,
+        trace: RunTrace | None = None,
     ) -> str:
-        """Core agentic loop: call model → dispatch tools → repeat."""
+        """Core agentic loop: call model → dispatch tools → repeat.
+
+        *trace*, if given, is populated with per-turn latency/token/cost
+        data and per-tool-call latency (see agent/trace.py). Passing None
+        (the default) skips tracing entirely — used by unit tests that feed
+        in bare mocks without a `.usage` attribute.
+        """
         messages: list[dict] = [{"role": "user", "content": question}]
 
         for turn in range(1, self.max_turns + 1):
             log.debug("Turn %d: calling model.", turn)
+            turn_start = trace.start_turn() if trace else None
             response = self._anthropic.messages.create(
                 model=self.model,
                 max_tokens=self.max_tokens,
@@ -195,16 +212,31 @@ class AgentLoop:
             log.debug("stop_reason=%s  content_blocks=%d",
                       response.stop_reason, len(response.content))
 
+            if trace is not None:
+                usage = getattr(response, "usage", None)
+                trace.record_turn(
+                    turn=turn,
+                    stop_reason=response.stop_reason,
+                    start_time=turn_start,
+                    input_tokens=getattr(usage, "input_tokens", 0) or 0,
+                    output_tokens=getattr(usage, "output_tokens", 0) or 0,
+                )
+
             # Append the assistant's response to conversation history
             messages.append({"role": "assistant", "content": response.content})
 
             if response.stop_reason == "end_turn":
+                if trace is not None:
+                    trace.finish()
                 return _extract_text(response.content)
 
             if response.stop_reason != "tool_use":
-                raise RuntimeError(
+                err = (
                     f"Unexpected stop_reason from model: {response.stop_reason!r}. "
                     "Expected 'end_turn' or 'tool_use'.")
+                if trace is not None:
+                    trace.finish(error=err)
+                raise RuntimeError(err)
 
             # Dispatch every tool call in this response and collect results
             tool_results = []
@@ -216,9 +248,19 @@ class AgentLoop:
                     block.name,
                     json.dumps(block.input)[:300],
                 )
+                tool_start = time.monotonic()
                 mcp_result = await session.call_tool(block.name, block.input)
                 result_str = _mcp_content_to_str(mcp_result)
                 log.info("Tool result ← %.300s", result_str)
+                if trace is not None:
+                    trace.record_tool_call(
+                        turn=turn,
+                        name=block.name,
+                        input_=dict(block.input) if block.input else {},
+                        latency_s=time.monotonic() - tool_start,
+                        is_error=bool(mcp_result.isError),
+                        result_text=result_str,
+                    )
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": block.id,
@@ -227,6 +269,9 @@ class AgentLoop:
 
             messages.append({"role": "user", "content": tool_results})
 
-        raise RuntimeError(
+        err = (
             f"Agent exceeded the maximum of {self.max_turns} turns without "
             "producing a final answer. Increase max_turns or inspect the loop.")
+        if trace is not None:
+            trace.finish(error=err)
+        raise RuntimeError(err)
